@@ -1,0 +1,32 @@
+{
+    "redis": {
+        "address": "127.0.0.1:6379"
+    },
+    "tcpproxy": {
+        "address": ":10000"
+    },
+    "httpproxy": {
+        "address": ":10001"
+    },
+    "httpserver": {
+        "address": ":80"
+    },
+    "zones": {
+        "mybox": {
+            "socks5": {
+                "address": "192.168.33.10:9999",
+                "username": "",
+                "password": ""
+            },
+            "cidr": "10.0.2.15/24"
+        },
+        "localhost": {
+            "socks5": {
+                "address": "192.168.1.106:9999",
+                "username": "",
+                "password": ""
+            },
+            "cidr": "192.168.1.106/24"
+        }
+    }
+}
