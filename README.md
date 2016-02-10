@@ -1,4 +1,4 @@
-# zoneproxy
+# zoneproxy [![Build Status](https://api.travis-ci.org/detailyang/zoneproxy.svg)](https://api.travis-ci.org/detailyang/zoneproxy.svg)
 zoneproxy easy to access different network zones
 
 #purpose
