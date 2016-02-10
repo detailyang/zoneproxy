@@ -2,15 +2,15 @@
 * @Author: detailyang
 * @Date:   2016-02-09 15:13:37
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-09 22:05:11
+* @Last Modified time: 2016-02-10 19:26:12
  */
 
 package httpproxy
 
 import (
 	"dialer"
-	"github.com/garyburd/redigo/redis"
 	"github.com/golang/glog"
+	"github.com/spf13/viper"
 	"io"
 	"net"
 	"net/http"
@@ -19,17 +19,20 @@ import (
 )
 
 type HttpProxy struct {
+	utils.ACL
+	name       string
 	local      string
-	redispool  *redis.Pool
 	dialerpool *dialer.DialerPool
 	listener   net.Listener
+	vip        *viper.Viper
 }
 
-func NewHttpProxy(local string, redispool *redis.Pool, dialerpool *dialer.DialerPool) *HttpProxy {
+func NewHttpProxy(name, local string, dialerpool *dialer.DialerPool, vip *viper.Viper) *HttpProxy {
 	return &HttpProxy{
+		name:       name,
 		local:      local,
 		dialerpool: dialerpool,
-		redispool:  redispool,
+		vip:        vip,
 	}
 }
 
@@ -42,6 +45,12 @@ func (self *HttpProxy) Run() {
 }
 
 func (self *HttpProxy) connect(w http.ResponseWriter, r *http.Request) {
+	whitelisthosts := self.vip.GetString("whitelisthosts")
+	if self.MatchHost(whitelisthosts, r.RequestURI) == false {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("sorry '" + r.RequestURI + "' is not in whitelist"))
+		return
+	}
 	glog.V(0).Infof("client %s ready httpproxy to %s", r.RemoteAddr, r.RequestURI)
 	serverConn, err := self.dialerpool.Dial("tcp", r.RequestURI)
 	if err != nil {
@@ -66,7 +75,6 @@ func (self *HttpProxy) connect(w http.ResponseWriter, r *http.Request) {
 		glog.Errorln("write error ", err)
 		return
 	}
-	glog.V(0).Infof("success write HTTP/1.1 200 Connection Established to client %s", r.RemoteAddr)
 
 	err = utils.TcpPipe(serverConn, clientConn)
 	if err != nil {
@@ -75,22 +83,13 @@ func (self *HttpProxy) connect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (self *HttpProxy) request(w http.ResponseWriter, r *http.Request) {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		glog.Errorln("split remote address error ", err)
+	whitelisthosts := self.vip.GetString("whitelisthosts")
+	if self.MatchHost(whitelisthosts, r.Host) == false {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("sorry '" + r.Host + "' is not in whitelist"))
 		return
 	}
-	cache := self.redispool.Get()
-	if cache == nil {
-		glog.Errorln("get empty from redis pool ")
-		return
-	}
-	upstreamaddress, err := redis.String(cache.Do("GET", host))
-	if err != nil && upstreamaddress != "" {
-		glog.Errorln("get empty from redis key ", "abcd")
-	}
-	r.RequestURI = ""
-	dialer := self.dialerpool.Get(upstreamaddress)
+	dialer := self.dialerpool.Get(r.Host)
 	if dialer == nil {
 		glog.Errorln("get empty from dialer pool ")
 		return

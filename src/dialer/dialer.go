@@ -2,7 +2,7 @@
 * @Author: detailyang
 * @Date:   2016-02-09 20:52:52
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-10 01:39:09
+* @Last Modified time: 2016-02-10 19:16:16
  */
 
 package dialer
@@ -83,6 +83,11 @@ func (self *DialerPool) Dial(network, hostport string) (net.Conn, error) {
 
 func (self *DialerPool) Get(hostport string) proxy.Dialer {
 	host := utils.GetHost(hostport)
+	if host == "" {
+		for _, dial := range self.pool {
+			return dial.dialer
+		}
+	}
 	for _, dial := range self.pool {
 		if dial.ipnet.Contains(net.ParseIP(host)) == false {
 			continue
@@ -100,4 +105,20 @@ func (self *DialerPool) Get(hostport string) proxy.Dialer {
 
 func (self *DialerPool) Add(name string, dial *Dial) {
 	self.pool[name] = dial
+}
+
+func (self *DialerPool) AddByZones(zones map[string]interface{}) {
+	for name, value := range zones {
+		socks5 := value.(map[string]interface{})["socks5"]
+		address := socks5.(map[string]interface{})["address"].(string)
+		username := socks5.(map[string]interface{})["username"].(string)
+		password := socks5.(map[string]interface{})["password"].(string)
+		cidr := value.(map[string]interface{})["cidr"].(string)
+		dialer := NewDialer(name, address, username, password, cidr)
+		if dialer == nil {
+			glog.Infof("new dialer error %s %s %s", name, address, cidr)
+			continue
+		}
+		self.Add(name, dialer)
+	}
 }

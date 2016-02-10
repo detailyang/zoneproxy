@@ -2,37 +2,40 @@
 * @Author: detailyang
 * @Date:   2016-02-09 01:32:38
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-09 21:22:44
+* @Last Modified time: 2016-02-10 19:25:06
  */
 
 package tcpproxy
 
 import (
 	"dialer"
-	"github.com/garyburd/redigo/redis"
 	"github.com/golang/glog"
+	"github.com/spf13/viper"
 	"net"
 	"utils"
 )
 
 type TcpProxy struct {
+	utils.ACL
+	name       string
 	local      string
-	redispool  *redis.Pool
 	dialerpool *dialer.DialerPool
 	listener   net.Listener
+	vip        *viper.Viper
 }
 
-func NewTcpProxy(local string, redispool *redis.Pool, dialerpool *dialer.DialerPool) *TcpProxy {
+func NewTcpProxy(name, local string, dialerpool *dialer.DialerPool, vip *viper.Viper) *TcpProxy {
 	l, err := net.Listen("tcp", local)
 	if err != nil {
-		glog.Infoln("listen error: ", err)
+		glog.Fatal("listen error: ", err)
 	}
 	glog.V(0).Infoln("tcp proxy listen on ", local)
 	return &TcpProxy{
+		name:       name,
 		local:      local,
-		redispool:  redispool,
 		listener:   l,
 		dialerpool: dialerpool,
+		vip:        vip,
 	}
 }
 
@@ -49,25 +52,17 @@ func (self *TcpProxy) Run() {
 }
 
 func (self *TcpProxy) handle(clientConn net.Conn) {
-	host, _, err := net.SplitHostPort(clientConn.RemoteAddr().String())
-	if err != nil {
-		glog.Errorln("split remote address error ", err)
+	upstream := self.vip.GetString("tcpproxys." + self.name + ".upstream")
+	whitelisthosts := self.vip.GetString("whitelisthosts")
+	if self.MatchHost(whitelisthosts, upstream) == false {
+		clientConn.Write([]byte("sorry '" + upstream + "' is not in whitelist"))
 		return
 	}
-	cache := self.redispool.Get()
-	if cache == nil {
-		glog.Errorln("get empty from redis pool ")
-		return
-	}
-	upstreamaddress, err := redis.String(cache.Do("GET", host))
-	if err != nil && upstreamaddress != "" {
-		glog.Errorln("get empty from redis key ", "abcd")
-	}
-	upstreamConn, err := self.dialerpool.Dial("tcp", upstreamaddress)
+	upstreamConn, err := self.dialerpool.Dial("tcp", upstream)
 	if err != nil {
-		glog.Errorf("downstream '%s' dial upstream '%s' error :%s", clientConn.RemoteAddr().String(), upstreamaddress, err.Error())
+		glog.Errorf("downstream '%s' dial upstream '%s' error :%s",
+			clientConn.RemoteAddr().String(), upstream, err.Error())
 		clientConn.Write([]byte("upstream is wrong: " + err.Error()))
-		clientConn.Close()
 		return
 	}
 	utils.TcpPipe(upstreamConn, clientConn)

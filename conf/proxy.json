@@ -1,32 +1,48 @@
 {
-    "redis": {
-        "address": "127.0.0.1:6379"
+    "tcpproxys": {
+        "tp1": {
+            "address": ":10000",
+            "upstream": "192.168.1.106:3540"
+        },
+        "tp2": {
+            "address": ":10001",
+            "upstream": "192.168.1.106:8000"
+        }
     },
-    "tcpproxy": {
-        "address": ":10000"
+    "httpproxys": {
+        "hp1": {
+            "address": ":11000"
+        },
+        "hp2": {
+            "address": ":11001"
+        }
     },
-    "httpproxy": {
-        "address": ":10001"
-    },
-    "httpserver": {
-        "address": ":80"
+    "httpservers": {
+        "hs1": {
+            "address": ":80",
+            "upstreams": {
+                "wap.koudaitong.com": "192.168.1.106:8000",
+                "twitter.com": "facebook.com"
+            }
+        }
     },
     "zones": {
+        "localhost": {
+            "socks5": {
+                "address": "192.168.1.106:9999",
+                "username": "hello",
+                "password": "jack"
+            },
+            "cidr": "192.168.1.0/24"
+        },
         "mybox": {
             "socks5": {
                 "address": "192.168.33.10:9999",
                 "username": "",
                 "password": ""
             },
-            "cidr": "10.0.2.15/24"
-        },
-        "localhost": {
-            "socks5": {
-                "address": "192.168.1.106:9999",
-                "username": "",
-                "password": ""
-            },
-            "cidr": "192.168.1.106/24"
+            "cidr": "192.168.33.0/24"
         }
-    }
+    },
+    "whitelisthosts": "(192.*|beijing-.*|.*\\.com|.*\\.cn|.*\\.org):?[0-9]?"
 }

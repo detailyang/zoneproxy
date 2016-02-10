@@ -2,15 +2,15 @@
 * @Author: detailyang
 * @Date:   2016-02-09 15:13:37
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-09 21:58:05
+* @Last Modified time: 2016-02-10 19:26:59
  */
 
 package httpserver
 
 import (
 	"dialer"
-	"github.com/garyburd/redigo/redis"
 	"github.com/golang/glog"
+	"github.com/spf13/viper"
 	"io"
 	"net"
 	"net/http"
@@ -19,17 +19,20 @@ import (
 )
 
 type HttpServer struct {
+	utils.ACL
+	name       string
 	local      string
-	redispool  *redis.Pool
 	listener   net.Listener
 	dialerpool *dialer.DialerPool
+	vip        *viper.Viper
 }
 
-func NewHttpServer(local string, redispool *redis.Pool, dialerpool *dialer.DialerPool) *HttpServer {
+func NewHttpServer(name, local string, dialerpool *dialer.DialerPool, vip *viper.Viper) *HttpServer {
 	return &HttpServer{
+		name:       name,
 		local:      local,
-		redispool:  redispool,
 		dialerpool: dialerpool,
+		vip:        vip,
 	}
 }
 
@@ -42,22 +45,21 @@ func (self *HttpServer) Run() {
 }
 
 func (self *HttpServer) request(w http.ResponseWriter, r *http.Request) {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		glog.Errorln("split remote address error ", err)
+	whitelisthosts := self.vip.GetString("whitelisthosts")
+	if self.MatchHost(whitelisthosts, r.Host) == false {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("sorry '" + r.Host + "' is not in whitelist"))
 		return
 	}
-	cache := self.redispool.Get()
-	if cache == nil {
-		glog.Errorln("get empty from redis pool ")
+	upstreams := self.vip.GetStringMapString("httpservers.hs1.upstreams")
+	upstream, ok := upstreams[r.Host]
+	if ok == false {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("sorry '" + r.Host + "' have not set upstream"))
 		return
-	}
-	upstreamaddress, err := redis.String(cache.Do("GET", host))
-	if err != nil && upstreamaddress != "" {
-		glog.Errorln("get empty from redis key ", "abcd")
 	}
 	r.RequestURI = ""
-	dialer := self.dialerpool.Get(upstreamaddress)
+	dialer := self.dialerpool.Get(upstream)
 	if dialer == nil {
 		glog.Errorln("get empty from dialer pool ")
 		return
@@ -75,7 +77,7 @@ func (self *HttpServer) request(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Scheme == "" {
 		r.URL.Scheme = "http"
 	}
-	r.Host = upstreamaddress
+	r.Host = upstream
 	r.URL.Host = r.Host
 	resp, err := client.Do(r)
 	if err != nil && resp == nil {
