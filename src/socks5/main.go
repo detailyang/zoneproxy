@@ -2,7 +2,7 @@
 * @Author: detailyang
 * @Date:   2016-02-10 04:17:38
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-10 19:21:48
+* @Last Modified time: 2016-02-10 22:12:55
  */
 
 package main
@@ -13,7 +13,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/viper"
 	"os"
-	"os/Signal"
+	"os/signal"
 	"sync"
 	"syscall"
 )
