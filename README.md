@@ -1,4 +1,4 @@
-# zoneproxy [![Build Status](https://api.travis-ci.org/detailyang/zoneproxy.svg)](https://api.travis-ci.org/detailyang/zoneproxy.svg)[![release](https://img.shields.io/github/release/detailyang/zoneproxy.svg)](https://github.com/detailyang/zoneproxy/releases)[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/detailyang/zoneproxy/master/LICENSE)
+# zoneproxy [![Build Status](https://api.travis-ci.org/detailyang/zoneproxy.svg)](https://travis-ci.org/detailyang/zoneproxy)[![release](https://img.shields.io/github/release/detailyang/zoneproxy.svg)](https://github.com/detailyang/zoneproxy/releases)[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/detailyang/zoneproxy/master/LICENSE)
 zoneproxy easy to access different network zones
 
 #purpose
