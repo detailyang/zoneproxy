@@ -99,7 +99,7 @@ bin/socks5 -logtostderr=true -config=conf/socks5.json
 
 
 #finally
-it's done , but not perfect. i took two days to write this, i know it's not enough good but it can be used to solve my problem in the actual scene.
+it's done , but not perfect. i took two days to write this first version, i know it's not enough good but it can be used to solve my problem in the actual scene.
 
 i'm ensure that i will update code  and check the issues if anyone have any problem.
 
