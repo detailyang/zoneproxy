@@ -3,7 +3,7 @@ zoneproxy easy to access different network zones
 
 #purpose
 zoneproxy aims to solve the problem in the actual scene, i want to access the server on the different network zones, but our cloud environment only allow me to access the one server called jumpserver. if i want to access more servers, only add a static route on my route table everytime, which is not too convenient:(. Finally, i set socks5 server on each jumpserver and install proxy (tcpproxy、http reverse proxy and http forward proxy)in the office and i just control the link from my office to another zones. architecture as follow:
-![arch](pics/arch.jpg)
+![arch](docs/images/arch.jpg)
 
 #install
 you have two ways to get binary, choose the best way and enjoy it.
@@ -22,7 +22,7 @@ make build #build binary
 
 #run
 ##zoneproxy
-look at the config file, wish it's easy to understand:) 
+look at the config file, wish it's easy to understand:)
 ````javascript
 {
     "tcpproxys": {

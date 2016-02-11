@@ -12,10 +12,14 @@ build:
 	@GOPATH=$(GOPATH) go install zoneproxy
 	@GOPATH=$(GOPATH) go install socks5
 buildarch:
-	for arch in arm 386 amd64; do for os in linux darwin freebsd; do\
-		go build -o bin/zoneproxy-$$os-$$arch zoneproxy &&\
-		go build -o bin/socks5-$$os-$$arch socks5 &&\
-	 	zip -r zoneproxy-$$os-$$arch.zip bin/zoneproxy-$$os-$$arch conf README.md; \
+	git rev-parse HEAD > version
+	for arch in amd64 386 arm; do for os in linux darwin freebsd; do\
+		rm -rf zoneproxy &&\
+		GOARCH=$$arch GOOS=$$os go build -o bin/zoneproxy zoneproxy &&\
+		GOARCH=$$arch GOOS=$$os go build -o bin/socks5 socks5 &&\
+		mkdir zoneproxy && cp -r bin zoneproxy/bin && cp -r conf zoneproxy/conf && \
+		cp README.md zoneproxy && cp version zoneproxy && \
+	 	tar -zcf zoneproxy-$$os-$$arch.tar.gz zoneproxy; \
 	done done
 test:
 	#fake test, we should add test :(
