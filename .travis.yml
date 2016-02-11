@@ -17,15 +17,15 @@ deploy:
   api_key: $CI_USER_TOKEN
   skip_cleanup: true
   file:
-    - zoneproxy-linux-arm.zip
-    - zoneproxy-linux-386.zip
-    - zoneproxy-linux-amd64.zip
-    - zoneproxy-freebsd-arm.zip
-    - zoneproxy-freebsd-386.zip
-    - zoneproxy-freebsd-amd64.zip
-    - zoneproxy-darwin-arm.zip
-    - zoneproxy-darwin-386.zip
-    - zoneproxy-darwin-amd64.zip
+    - zoneproxy-linux-arm.tar.gz
+    - zoneproxy-linux-386.tar.gz
+    - zoneproxy-linux-amd64.tar.gz
+    - zoneproxy-freebsd-arm.tar.gz
+    - zoneproxy-freebsd-386.tar.gz
+    - zoneproxy-freebsd-amd64.tar.gz
+    - zoneproxy-darwin-arm.tar.gz
+    - zoneproxy-darwin-386.tar.gz
+    - zoneproxy-darwin-amd64.tar.gz
   on:
     tags: true
     all_branches: true
