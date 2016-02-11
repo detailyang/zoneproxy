@@ -17,9 +17,6 @@ deploy:
   api_key: $CI_USER_TOKEN
   skip_cleanup: true
   file:
-    - zoneproxy-darwin-arm.tar.gz
-    - zoneproxy-darwin-386.tar.gz
-    - zoneproxy-darwin-amd64.tar.gz
     - zoneproxy-linux-arm.tar.gz
     - zoneproxy-linux-386.tar.gz
     - zoneproxy-linux-amd64.tar.gz
