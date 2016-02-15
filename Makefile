@@ -11,7 +11,7 @@ install:
 	go get github.com/sevlyar/go-daemon
 build:
 	@GOPATH=$(GOPATH) go install zoneproxy
-	@GOPATH=$(GOPATH) go install socks5
+	@GOPATH=$(GOPATH) go install zonesocks5
 buildarch:
 	git rev-parse HEAD > version
 	for arch in amd64 386 arm; do for os in darwin linux freebsd; do\

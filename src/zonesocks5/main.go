@@ -1,19 +1,24 @@
+/*
+* @Author: detailyang
+* @Date:   2016-02-10 04:17:38
+* @Last Modified by:   detailyang
+* @Last Modified time: 2016-02-15 19:17:56
+ */
+
 package main
 
 import (
-	"dialer"
 	"flag"
+	"github.com/armon/go-socks5"
 	"github.com/golang/glog"
 	"github.com/sevlyar/go-daemon"
 	"github.com/spf13/viper"
-	"httpproxy"
-	"httpserver"
 	"log"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
 	"syscall"
-	"tcpproxy"
 	"utils"
 )
 
@@ -21,7 +26,6 @@ func main() {
 	var config string
 	var nodaemon bool
 
-	dp := dialer.NewDialerPool()
 	signal := flag.String("s", "", "send signal to daemon")
 
 	flag.StringVar(&config, "config", "", "config file")
@@ -39,12 +43,12 @@ func main() {
 	}
 
 	signaldispatcher := func(sig os.Signal) error {
-		return singalhandler(sig, v, dp)
+		return singalhandler(sig, v)
 	}
 
 	if nodaemon == true {
 		log.Println("no daemonize to start up")
-		zoneproxy(v, dp)
+		zonesocks5(v)
 		return
 	}
 
@@ -108,7 +112,7 @@ func main() {
 
 	// Run main operation
 	go func() {
-		zoneproxy(v, dp)
+		zonesocks5(v)
 	}()
 
 	err = daemon.ServeSignals()
@@ -117,72 +121,63 @@ func main() {
 	}
 }
 
-func zoneproxy(v *viper.Viper, dp *dialer.DialerPool) {
+func zonesocks5(v *viper.Viper) {
 	var wg sync.WaitGroup
-
-	zones := v.GetStringMap("zones")
-	dp.AddByZones(zones)
-
-	tcpproxys := v.GetStringMap("tcpproxys")
-	for name, _ := range tcpproxys {
-		address := v.GetString("tcpproxys." + name + ".address")
-		if address == "" {
-			glog.Fatalln("tcpproxys." + name + ".address must be string")
-		}
-		tp := tcpproxy.NewTcpProxy(name, address, dp, v)
-		wg.Add(1)
-		go func() {
-			tp.Run()
-			wg.Done()
-		}()
+	// Create a SOCKS5 server
+	username := v.GetString("username")
+	password := v.GetString("password")
+	creds := socks5.StaticCredentials{}
+	creds[username] = password
+	cator := socks5.UserPassAuthenticator{Credentials: creds}
+	conf := &socks5.Config{
+		AuthMethods: []socks5.Authenticator{cator},
+		Credentials: creds,
+	}
+	server, err := socks5.New(conf)
+	if err != nil {
+		glog.Infoln("new socks5 config error ", err)
 	}
 
-	httpproxys := v.GetStringMap("httpproxys")
-	for name, _ := range httpproxys {
-		address := v.GetString("httpproxys." + name + ".address")
-		if address == "" {
-			glog.Fatalln("httpproxys." + name + ".address must be string")
+	address := v.GetString("address")
+	glog.Infoln("listen to address ", address)
+	wg.Add(1)
+	go func() {
+		if err := server.ListenAndServe("tcp", address); err != nil {
+			glog.Errorln(err)
 		}
-		hp := httpproxy.NewHttpProxy(name, address, dp, v)
-		wg.Add(1)
-		go func() {
-			hp.Run()
-			wg.Done()
-		}()
-	}
+		wg.Done()
+	}()
 
-	httpservers := v.GetStringMap("httpservers")
-	for name, _ := range httpservers {
-		address := v.GetString("httpservers." + name + ".address")
-		if address == "" {
-			glog.Fatalln("httpservers." + name + ".address must be string")
+	// signal hup
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGHUP)
+	wg.Add(1)
+	go func() {
+		for sig := range c {
+			switch sig {
+			case syscall.SIGHUP:
+				glog.Infoln("got hup signal")
+			default:
+				glog.Infoln("not ready to process ", sig.String())
+			}
 		}
-		hs := httpserver.NewHttpServer(name, address, dp, v)
-		wg.Add(1)
-		go func() {
-			hs.Run()
-			wg.Done()
-		}()
-	}
+		wg.Done()
+	}()
 
 	wg.Wait()
-	glog.Flush()
 }
 
-func singalhandler(sig os.Signal, v *viper.Viper, dp *dialer.DialerPool) error {
+func singalhandler(sig os.Signal, v *viper.Viper) error {
 	switch sig {
 	case syscall.SIGHUP:
-		log.Println("HUP")
-		glog.Infof("got hup signal, now reloading conf\n", sig.String())
+		log.Println("got hup signal, now reloading conf")
 		err := v.ReadInConfig()
 		if err != nil {
 			glog.Infoln("Fatal error config file ", err)
 			return utils.ErrReadConfig
 		}
-		zones := v.GetStringMap("zones")
-		dp.AddByZones(zones)
 	case syscall.SIGTERM:
-		glog.Infoln("receive SIGTERM, exit")
+		log.Println("receive SIGTERM, exit")
 		//maybe graceful stop is better:)
 		os.Exit(0)
 	default:
