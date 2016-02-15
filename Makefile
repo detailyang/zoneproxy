@@ -8,6 +8,7 @@ install:
 	go get golang.org/x/net/proxy
 	go get github.com/spf13/viper
 	go get github.com/armon/go-socks5
+	go get github.com/sevlyar/go-daemon
 build:
 	@GOPATH=$(GOPATH) go install zoneproxy
 	@GOPATH=$(GOPATH) go install socks5
