@@ -2,7 +2,7 @@
 * @Author: detailyang
 * @Date:   2016-02-09 20:52:52
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-10 19:16:16
+* @Last Modified time: 2016-02-15 10:32:37
  */
 
 package dialer
@@ -17,7 +17,7 @@ import (
 
 type Dial struct {
 	name   string
-	ipnet  *net.IPNet
+	ipnets []*net.IPNet
 	dialer proxy.Dialer
 }
 
@@ -25,11 +25,15 @@ type DialerPool struct {
 	pool map[string]*Dial
 }
 
-func NewDialer(name, address, username, password, cidr string) *Dial {
-	_, ipnet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		glog.Errorf("parse %s cidr error %s", err.Error())
-		return nil
+func NewDialer(name, address, username, password string, cidrs []string) *Dial {
+	ipnets := make([]*net.IPNet, 0)
+	for _, cidr := range cidrs {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			glog.Errorf("parse %s cidr error %s", err.Error())
+			return nil
+		}
+		ipnets = append(ipnets, ipnet)
 	}
 	var auth *proxy.Auth
 	if username != "" && password != "" {
@@ -40,8 +44,8 @@ func NewDialer(name, address, username, password, cidr string) *Dial {
 	dialer, err := proxy.SOCKS5("tcp", address,
 		auth,
 		&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
+			Timeout:   60 * time.Second,
+			KeepAlive: 60 * time.Second,
 		},
 	)
 	if err != nil {
@@ -51,7 +55,7 @@ func NewDialer(name, address, username, password, cidr string) *Dial {
 
 	return &Dial{
 		name:   name,
-		ipnet:  ipnet,
+		ipnets: ipnets,
 		dialer: dialer,
 	}
 }
@@ -67,10 +71,12 @@ func (self *DialerPool) Dial(network, hostport string) (net.Conn, error) {
 	host := utils.GetHost(hostport)
 	//o(n) maybe a little slow:)
 	for _, dial := range self.pool {
-		if dial.ipnet.Contains(net.ParseIP(host)) == false {
-			continue
+		for _, ipnet := range dial.ipnets {
+			if ipnet.Contains(net.ParseIP(host)) == false {
+				continue
+			}
+			return dial.dialer.Dial(network, hostport)
 		}
-		return dial.dialer.Dial(network, hostport)
 	}
 
 	glog.Infoln("cannot found any ipnet for ", host)
@@ -88,11 +94,14 @@ func (self *DialerPool) Get(hostport string) proxy.Dialer {
 			return dial.dialer
 		}
 	}
+	//o(n) maybe a little slow:)
 	for _, dial := range self.pool {
-		if dial.ipnet.Contains(net.ParseIP(host)) == false {
-			continue
+		for _, ipnet := range dial.ipnets {
+			if ipnet.Contains(net.ParseIP(host)) == false {
+				continue
+			}
+			return dial.dialer
 		}
-		return dial.dialer
 	}
 
 	glog.Infoln("cannot found any ipnet for ", host)
@@ -113,10 +122,14 @@ func (self *DialerPool) AddByZones(zones map[string]interface{}) {
 		address := socks5.(map[string]interface{})["address"].(string)
 		username := socks5.(map[string]interface{})["username"].(string)
 		password := socks5.(map[string]interface{})["password"].(string)
-		cidr := value.(map[string]interface{})["cidr"].(string)
-		dialer := NewDialer(name, address, username, password, cidr)
+		cidrsinterface := value.(map[string]interface{})["cidrs"]
+		cidrs := make([]string, 0)
+		for _, value := range cidrsinterface.([]interface{}) {
+			cidrs = append(cidrs, value.(string))
+		}
+		dialer := NewDialer(name, address, username, password, cidrs)
 		if dialer == nil {
-			glog.Infof("new dialer error %s %s %s", name, address, cidr)
+			glog.Infof("new dialer error %s %s %s", name, address, cidrs)
 			continue
 		}
 		self.Add(name, dialer)

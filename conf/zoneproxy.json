@@ -21,19 +21,22 @@
         "hs1": {
             "address": ":80",
             "upstreams": {
-                "wap.koudaitong.com": "192.168.1.106:8000",
-                "twitter.com": "facebook.com"
+                "kibana.qima-inc.com": "10.200.180.53:5601",
+                "nova.qima-inc.com": "10.10.19.57:6789"
             }
         }
     },
     "zones": {
-        "localhost": {
+        "bc": {
             "socks5": {
-                "address": "192.168.1.106:9999",
+                "address": "10.10.57.245:9999",
                 "username": "hello",
                 "password": "jack"
             },
-            "cidr": "192.168.1.0/24"
+            "cidrs": [
+                "192.168.33.10/24",
+                "192.168.34.10/24"
+            ]
         },
         "mybox": {
             "socks5": {
@@ -41,8 +44,11 @@
                 "username": "",
                 "password": ""
             },
-            "cidr": "192.168.33.0/24"
+            "cidrs": [
+                "192.168.35.10/24",
+                "192.168.36.10/24"
+            ]
         }
     },
-    "whitelisthosts": "(192.*|beijing-.*|.*\\.com|.*\\.cn|.*\\.org):?[0-9]?"
+    "whitelisthosts": "(10.*|bc-.*|.*\\.com|.*\\.cn|.*\\.org):?[0-9]?"
 }
