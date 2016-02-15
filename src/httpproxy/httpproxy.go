@@ -2,7 +2,7 @@
 * @Author: detailyang
 * @Date:   2016-02-09 15:13:37
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-10 19:26:12
+* @Last Modified time: 2016-02-15 10:57:17
  */
 
 package httpproxy
@@ -45,7 +45,7 @@ func (self *HttpProxy) Run() {
 }
 
 func (self *HttpProxy) connect(w http.ResponseWriter, r *http.Request) {
-	whitelisthosts := self.vip.GetString("whitelisthosts")
+	whitelisthosts := self.vip.GetStringSlice("whitelisthosts")
 	if self.MatchHost(whitelisthosts, r.RequestURI) == false {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("sorry '" + r.RequestURI + "' is not in whitelist"))
@@ -83,7 +83,7 @@ func (self *HttpProxy) connect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (self *HttpProxy) request(w http.ResponseWriter, r *http.Request) {
-	whitelisthosts := self.vip.GetString("whitelisthosts")
+	whitelisthosts := self.vip.GetStringSlice("whitelisthosts")
 	if self.MatchHost(whitelisthosts, r.Host) == false {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("sorry '" + r.Host + "' is not in whitelist"))

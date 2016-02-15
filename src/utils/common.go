@@ -2,7 +2,7 @@
 * @Author: detailyang
 * @Date:   2016-02-09 02:36:31
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-10 19:16:06
+* @Last Modified time: 2016-02-15 10:57:05
  */
 
 package utils
@@ -14,10 +14,18 @@ import (
 type ACL struct {
 }
 
-func (self *ACL) MatchHost(pattern, host string) bool {
-	rp, err := regexp.Compile(pattern)
-	if err != nil {
-		return false
+func (self *ACL) MatchHost(patterns []string, host string) bool {
+	for _, pattern := range patterns {
+		rp, err := regexp.Compile(pattern)
+		if err != nil {
+			continue
+		}
+		ok := rp.MatchString(host)
+		if ok == false {
+			continue
+		}
+		return true
 	}
-	return rp.MatchString(host)
+
+	return false
 }

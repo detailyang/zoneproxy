@@ -1,4 +1,10 @@
 {
+    "pidfile": "/Users/detailyang/art/opensource/personal/zoneproxy/zoneproxy.pid",
+    "pidfileperm": "0644",
+    "logfile": "/Users/detailyang/art/opensource/personal/zoneproxy/zoneproxy.log",
+    "logfileperm": "0644",
+    "workdir": "/Users/detailyang/art/opensource/personal/zoneproxy",
+    "umask": "027",
     "tcpproxys": {
         "tp1": {
             "address": ":10000",
@@ -6,7 +12,7 @@
         },
         "tp2": {
             "address": ":10001",
-            "upstream": "192.168.1.106:8000"
+            "upstream": "192.168.1.107:3540"
         }
     },
     "httpproxys": {
@@ -29,7 +35,7 @@
     "zones": {
         "bc": {
             "socks5": {
-                "address": "10.10.57.245:9999",
+                "address": "192.168.33.88:9999",
                 "username": "hello",
                 "password": "jack"
             },
@@ -40,7 +46,7 @@
         },
         "mybox": {
             "socks5": {
-                "address": "192.168.33.10:9999",
+                "address": "192.168.35.44:9999",
                 "username": "",
                 "password": ""
             },
@@ -50,5 +56,8 @@
             ]
         }
     },
-    "whitelisthosts": "(10.*|bc-.*|.*\\.com|.*\\.cn|.*\\.org):?[0-9]?"
+    "whitelisthosts": [
+        "beijing-.*:?[0-9]?",
+        "(.*\\.com|.*\\.cn|.*\\.org):?[0-9]?"
+    ]
 }

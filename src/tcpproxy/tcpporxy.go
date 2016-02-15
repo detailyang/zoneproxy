@@ -2,7 +2,7 @@
 * @Author: detailyang
 * @Date:   2016-02-09 01:32:38
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-10 19:25:06
+* @Last Modified time: 2016-02-15 10:43:09
  */
 
 package tcpproxy
@@ -53,7 +53,7 @@ func (self *TcpProxy) Run() {
 
 func (self *TcpProxy) handle(clientConn net.Conn) {
 	upstream := self.vip.GetString("tcpproxys." + self.name + ".upstream")
-	whitelisthosts := self.vip.GetString("whitelisthosts")
+	whitelisthosts := self.vip.GetStringSlice("whitelisthosts")
 	if self.MatchHost(whitelisthosts, upstream) == false {
 		clientConn.Write([]byte("sorry '" + upstream + "' is not in whitelist"))
 		return

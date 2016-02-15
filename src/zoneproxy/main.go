@@ -4,21 +4,29 @@ import (
 	"dialer"
 	"flag"
 	"github.com/golang/glog"
+	"github.com/sevlyar/go-daemon"
 	"github.com/spf13/viper"
 	"httpproxy"
 	"httpserver"
+	"log"
 	"os"
-	"os/signal"
+	// "os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"tcpproxy"
+	"utils"
 )
 
 func main() {
-	var wg sync.WaitGroup
 	var config string
+	var nodaemon bool
+
+	dp := dialer.NewDialerPool()
+	signal := flag.String("s", "", "send signal to daemon")
 
 	flag.StringVar(&config, "config", "", "config file")
+	flag.BoolVar(&nodaemon, "nodaemon", false, "dont daemonize")
 	flag.Parse()
 	if config == "" {
 		glog.Fatalln("config file cannot be null")
@@ -31,8 +39,89 @@ func main() {
 		glog.Fatalln("Fatal error config file ", err)
 	}
 
+	signaldispatcher := func(sig os.Signal) error {
+		return singalhandler(sig, v, dp)
+	}
+
+	if nodaemon == true {
+		log.Println("no daemonize to start up")
+		zoneproxy(v, dp)
+		return
+	}
+
+	// Define command: command-line arg, system signal and handler
+	daemon.AddCommand(daemon.StringFlag(signal, "stop"), syscall.SIGTERM, signaldispatcher)
+	daemon.AddCommand(daemon.StringFlag(signal, "reload"), syscall.SIGHUP, signaldispatcher)
+	flag.Parse()
+
+	pidfile := v.GetString("pidfile")
+	pidfileperms := v.GetString("pidfileperm")
+	pidfileperm, err := strconv.ParseInt(pidfileperms, 8, 32)
+	if err != nil {
+		log.Println("parse pidfileperm error ", err)
+	}
+	logfile := v.GetString("logfile")
+	logfileperms := v.GetString("logfileperm")
+	logfileperm, err := strconv.ParseInt(logfileperms, 8, 32)
+	if err != nil {
+		log.Println("parse pidfileperm error ", err)
+	}
+	workdir := v.GetString("workdir")
+	umasks := v.GetString("umask")
+	umask, err := strconv.ParseInt(umasks, 8, 32)
+	if err != nil {
+		log.Println("parse umask error ", err)
+	}
+
+	dmn := &daemon.Context{
+		PidFileName: pidfile,
+		PidFilePerm: os.FileMode(pidfileperm),
+		LogFileName: logfile,
+		LogFilePerm: os.FileMode(logfileperm),
+		WorkDir:     workdir,
+		Umask:       int(umask),
+	}
+
+	// Send commands if needed
+	if len(daemon.ActiveFlags()) > 0 {
+		d, err := dmn.Search()
+		if err != nil {
+			log.Fatalln("Unable send signal to the daemon:", err)
+		}
+		err = daemon.SendCommands(d)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	// Process daemon operations - send signal if present flag or daemonize
+	child, err := dmn.Reborn()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if child != nil {
+		log.Println("daemonize to start up")
+		log.Println("daemonize success")
+		return
+	}
+	defer dmn.Release()
+
+	// Run main operation
+	go func() {
+		zoneproxy(v, dp)
+	}()
+
+	err = daemon.ServeSignals()
+	if err != nil {
+		log.Println("startup error:", err)
+	}
+}
+
+func zoneproxy(v *viper.Viper, dp *dialer.DialerPool) {
+	var wg sync.WaitGroup
+
 	zones := v.GetStringMap("zones")
-	dp := dialer.NewDialerPool()
 	dp.AddByZones(zones)
 
 	tcpproxys := v.GetStringMap("tcpproxys")
@@ -77,28 +166,29 @@ func main() {
 		}()
 	}
 
-	// signal hup
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGHUP)
-	wg.Add(1)
-	go func() {
-		for sig := range c {
-			switch sig {
-			case syscall.SIGHUP:
-				glog.Infof("got hup signal, now reloading conf\n", sig.String())
-				v.ReadInConfig()
-				if err != nil {
-					glog.Infoln("Fatal error config file ", err)
-				}
-				zones := v.GetStringMap("zones")
-				dp.AddByZones(zones)
-			default:
-				glog.Infoln("not ready to process ", sig.String())
-			}
-		}
-		wg.Done()
-	}()
-
 	wg.Wait()
 	glog.Flush()
+}
+
+func singalhandler(sig os.Signal, v *viper.Viper, dp *dialer.DialerPool) error {
+	switch sig {
+	case syscall.SIGHUP:
+		log.Println("HUP")
+		glog.Infof("got hup signal, now reloading conf\n", sig.String())
+		err := v.ReadInConfig()
+		if err != nil {
+			glog.Infoln("Fatal error config file ", err)
+			return utils.ErrReadConfig
+		}
+		zones := v.GetStringMap("zones")
+		dp.AddByZones(zones)
+	case syscall.SIGTERM:
+		glog.Infoln("receive SIGTERM, exit")
+		os.Exit(0)
+	default:
+		log.Println(sig)
+		glog.Infoln("not ready to process ", sig.String())
+	}
+
+	return nil
 }

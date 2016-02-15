@@ -2,7 +2,7 @@
 * @Author: detailyang
 * @Date:   2016-02-09 15:13:37
 * @Last Modified by:   detailyang
-* @Last Modified time: 2016-02-15 09:57:07
+* @Last Modified time: 2016-02-15 10:39:23
  */
 
 package httpserver
@@ -45,7 +45,7 @@ func (self *HttpServer) Run() {
 }
 
 func (self *HttpServer) request(w http.ResponseWriter, r *http.Request) {
-	whitelisthosts := self.vip.GetString("whitelisthosts")
+	whitelisthosts := self.vip.GetStringSlice("whitelisthosts")
 	if self.MatchHost(whitelisthosts, r.Host) == false {
 		w.WriteHeader(http.StatusForbidden)
 		w.Write([]byte("sorry '" + r.Host + "' is not in whitelist"))
