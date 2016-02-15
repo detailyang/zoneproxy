@@ -17,7 +17,7 @@ buildarch:
 	for arch in amd64 386 arm; do for os in darwin linux freebsd; do\
 		rm -rf zoneproxy &&\
 		GOARCH=$$arch GOOS=$$os go build -o bin/zoneproxy zoneproxy &&\
-		GOARCH=$$arch GOOS=$$os go build -o bin/socks5 socks5 &&\
+		GOARCH=$$arch GOOS=$$os go build -o bin/zonesocks5 zonesocks5 &&\
 		mkdir zoneproxy && cp -r bin zoneproxy/bin && cp -r conf zoneproxy/conf && \
 		cp README.md zoneproxy && cp version zoneproxy && \
 	 	tar -zcf zoneproxy-$$os-$$arch.tar.gz zoneproxy; \
