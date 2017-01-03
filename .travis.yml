@@ -1,0 +1,30 @@
+language: go
+
+go:
+  - 1.5
+
+before_install:
+  - go get github.com/golang/glog
+  - go get golang.org/x/net/proxy
+  - go get github.com/spf13/viper
+  - go get github.com/armon/go-socks5
+  - go get github.com/sevlyar/go-daemon
+
+before_deploy:
+  - make buildarch
+
+deploy:
+  provider: releases
+  api_key: $CI_USER_TOKEN
+  skip_cleanup: true
+  file:
+    - zoneproxy-linux-arm.tar.gz
+    - zoneproxy-linux-386.tar.gz
+    - zoneproxy-linux-amd64.tar.gz
+    - zoneproxy-freebsd-arm.tar.gz
+    - zoneproxy-freebsd-386.tar.gz
+    - zoneproxy-freebsd-amd64.tar.gz
+  on:
+    tags: true
+    all_branches: true
+    go: 1.5

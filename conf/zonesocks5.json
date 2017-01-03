@@ -1,0 +1,11 @@
+{
+    "pidfile": "/Users/detailyang/art/opensource/personal/zoneproxy/zonesocks5.pid",
+    "pidfileperm": "0644",
+    "logfile": "/Users/detailyang/art/opensource/personal/zoneproxy/zonesocks5.log",
+    "logfileperm": "0644",
+    "workdir": "/Users/detailyang/art/opensource/personal/zoneproxy",
+    "umask": "027",
+    "address": ":9999",
+    "username": "hello",
+    "password": "jack"
+}

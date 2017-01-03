@@ -1,0 +1,63 @@
+{
+    "pidfile": "/Users/detailyang/art/opensource/personal/zoneproxy/zoneproxy.pid",
+    "pidfileperm": "0644",
+    "logfile": "/Users/detailyang/art/opensource/personal/zoneproxy/zoneproxy.log",
+    "logfileperm": "0644",
+    "workdir": "/Users/detailyang/art/opensource/personal/zoneproxy",
+    "umask": "027",
+    "tcpproxys": {
+        "tp1": {
+            "address": ":10000",
+            "upstream": "192.168.1.106:3540"
+        },
+        "tp2": {
+            "address": ":10001",
+            "upstream": "192.168.1.107:3540"
+        }
+    },
+    "httpproxys": {
+        "hp1": {
+            "address": ":11000"
+        },
+        "hp2": {
+            "address": ":11001"
+        }
+    },
+    "httpservers": {
+        "hs1": {
+            "address": ":80",
+            "upstreams": {
+                "kibana.xxx.com": "10.200.180.53:5601",
+                "nova.yyy.com": "10.10.19.57:6789"
+            }
+        }
+    },
+    "zones": {
+        "bc": {
+            "socks5": {
+                "address": "192.168.33.88:9999",
+                "username": "hello",
+                "password": "jack"
+            },
+            "cidrs": [
+                "192.168.33.10/24",
+                "192.168.34.10/24"
+            ]
+        },
+        "mybox": {
+            "socks5": {
+                "address": "192.168.35.44:9999",
+                "username": "",
+                "password": ""
+            },
+            "cidrs": [
+                "192.168.35.10/24",
+                "192.168.36.10/24"
+            ]
+        }
+    },
+    "whitelisthosts": [
+        "beijing-.*:?[0-9]?",
+        "(.*\\.com|.*\\.cn|.*\\.org):?[0-9]?"
+    ]
+}
